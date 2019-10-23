@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 
-void printMatriz(int **matrix,int tam);
+void printMatriz(float *matrix,int tam);
 
-int **leMatrizDoArquivo(char *arquivo, int *tam);
+float *leMatrizDoArquivo(char *arquivo, int *tam);
 
