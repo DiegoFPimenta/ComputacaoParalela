@@ -9,6 +9,17 @@
 
 #define MIN(a, b) ((a) < (b)) ? (a) : (b)
 
+void solucaoSimples (float *dist, int N){
+    for (int k = 0; k < N; k++) {
+        for (int i = 0; i < N; i++){
+            for (int j = 0; j < N; j++){
+                get_m_value(dist, N, i, j) = MIN(get_m_value(dist, N, i, j),
+                                                    get_m_value(dist, N, i, k) + get_m_value(dist, N, k, j));
+            }
+        }
+    }
+}
+
 
 void finalizaProgramaComErro (char *message) {
     printf("%s\n",message);
@@ -90,10 +101,8 @@ int main(int argc, char *argv[]){
         //-----------------------------------------------------------------
 
         float *dist;
-        
         dist = inicializa_dist (matrix, N);
-             
-
+        
         //faz o calculo de quantas partes vao ter
         //distribui pro pares
         printMatriz(matrix,N);
