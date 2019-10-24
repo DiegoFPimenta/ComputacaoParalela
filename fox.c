@@ -7,6 +7,17 @@
 #define TRUE 1
 #define FALSE 0
 
+#define MIN(a, b) ((a) < (b)) ? (a) : (b)
+
+
+void finalizaProgramaComErro (char *message) {
+    printf("%s\n",message);
+    int satisfaz = 0;
+    MPI_Bcast (&satisfaz, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Finalize();
+    exit(0);
+}
+
 int isPerfectSquare(int number)
 {
     int iVar;
@@ -42,8 +53,8 @@ float* inicializa_dist (float *matrix, int n){
 
 int main(int argc, char *argv[]){
 
-    int  i, my_rank, n_procs;
-    int  dimension_matrix = 0;
+    int  my_rank, n_procs;
+    int  N = 0;
     MPI_Status status;
 
     int satisfaz = 1;
@@ -56,29 +67,38 @@ int main(int argc, char *argv[]){
     //le a matriz do arquivo
 
     if( my_rank == 0 ){
+        if (argc < 2){
+            finalizaProgramaComErro("Usage ./fox matrix-file.txt");
+        }
+
         float *matrix;
-        matrix = leMatrizDoArquivo("matrix.txt", &dimension_matrix);
+        matrix = leMatrizDoArquivo(argv[1], &N);
         
+        if (matrix == NULL){
+            finalizaProgramaComErro("Could not load Matrix file!");
+        }
+
         // Verifica se os parâmetros satisfazem a condição inicial do algoritmo de Fox
 
-        satisfaz = isPerfectSquare(n_procs) && dimension_matrix % (int) sqrt(n_procs) == 0;
-        MPI_Bcast (&satisfaz, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        satisfaz = isPerfectSquare(n_procs) && N % (int) sqrt(n_procs) == 0;
         
         if (!satisfaz){
-            printf("A matriz não satisfaz as condições para o algoritmo de Fox. Encerrando...\n");
-            MPI_Finalize();
-            exit(0);
+            finalizaProgramaComErro("A matriz não satisfaz as condições para o algoritmo de Fox. Encerrando...");
         }
-        
+        MPI_Bcast (&satisfaz, 1, MPI_INT, 0, MPI_COMM_WORLD);        // Broadcast sucesso
+
+        //-----------------------------------------------------------------
 
         float *dist;
         
-        dist = inicializa_dist (matrix, dimension_matrix);
+        dist = inicializa_dist (matrix, N);
+             
+
         //faz o calculo de quantas partes vao ter
         //distribui pro pares
-        printMatriz(matrix,dimension_matrix);
+        printMatriz(matrix,N);
         printf("\n\n===============DIST================\n");
-        printMatriz(dist,dimension_matrix);
+        printMatriz(dist,N);
     }
     else{
         MPI_Bcast (&satisfaz, 1, MPI_INT, 0, MPI_COMM_WORLD);
