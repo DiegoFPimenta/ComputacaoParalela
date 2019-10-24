@@ -1,4 +1,7 @@
+#include <string.h>
 #include "matrix.h"
+#include "sds/sds.h"
+#include "sds/sds.c"
 
 #define get_m_value(vector, size, a, b) vector[a*size + b]
 
@@ -17,47 +20,33 @@ void printMatriz(float *matrix, int tam){
 
 }
 
-float *leMatrizDoArquivo(char *arquivo, int *tam){
+float *leMatrizDoArquivo(char *arquivo, int *N){
 
-    FILE *arq;
-    int k,tamf,i,j,x;
-    char lixo;
+    sds linha = sdsempty();
+    sds *valores;
+    FILE *arq = fopen(arquivo,"r");
+    
+    if (arq == NULL)
+        return NULL;
+    
+    int count;
+    int n;
     float *matrix;
 
-    arq = fopen("matrix.txt","r");
-    
-    //le o tamanho da matriz
-    fscanf(arq,"%d\n",tam);
+    fscanf(arq, "%d\n", &n);                        // Lê o tamanho n da matriz
+    matrix = (float*) malloc(n*n*sizeof(float));
 
-    //aloca a matriz
-    matrix = (float*) malloc((*tam)*(*tam)*sizeof(float*));
-    
+    for (int i = 0; i < n; i++){                    
+        fgets(linha,10000, arq);
+        valores = sdssplitargs(linha, &count);        // Split no espaço
 
-    //le o \n
-    //fscanf(arq,"%c",&lixo);
-
-    // o numero de espaços é igual ao numero de numeros - 1.(tam + tam -1)...Porem existe o \n e o \0 por isso o tamanho é tam + tam + 1
-    tamf = *tam + (*tam + 1);
-    char linha[tamf];
-    
-    x = 0;
-    // le linha por linha do arquivo ate acabar e atribui na matriz alocada
-    while(fgets(linha, sizeof(linha), arq) != NULL) {
-        j = 0;
-        for(i = 0; i <= tamf - 2; i++){ // tamf -2 pq tira o \0 e o \n.
-            if( i%2 == 0 ){
-                get_m_value(matrix,*tam,x,j) = atof(&linha[i]);
-                j++;
-            }
+        for (int j = 0; j < count; j++){                            // Atribui os valores à matriz
+            get_m_value(matrix,n,i,j) = atof(valores[j]);
         }
-        x++;
     }
 
     fclose(arq);
 
-
+    *N = n;
     return matrix;
-
-
-
 }
