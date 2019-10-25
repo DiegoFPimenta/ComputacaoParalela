@@ -75,6 +75,8 @@ int main(int argc, char *argv[]){
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
 
+    q = (int) sqrt(n_procs);
+    float *dist;
     //le a matriz do arquivo
 
     if( my_rank == 0 ){
@@ -84,15 +86,13 @@ int main(int argc, char *argv[]){
 
         float *matrix;
         matrix = leMatrizDoArquivo(argv[1], &N);
-        
         if (matrix == NULL){
             finalizaProgramaComErro("Could not load Matrix file!");
         }
+        MPI_Bcast (&N, 1, MPI_INT, 0, MPI_COMM_WORLD);        // Broadcast tamanho da matriz
 
         // Verifica se os parâmetros satisfazem a condição inicial do algoritmo de Fox
-
-        satisfaz = isPerfectSquare(n_procs) && N % (int) sqrt(n_procs) == 0;
-        
+        satisfaz = isPerfectSquare(n_procs) && N % q == 0;
         if (!satisfaz){
             finalizaProgramaComErro("A matriz não satisfaz as condições para o algoritmo de Fox. Encerrando...");
         }
@@ -100,21 +100,54 @@ int main(int argc, char *argv[]){
 
         //-----------------------------------------------------------------
 
-        float *dist;
         dist = inicializa_dist (matrix, N);
         
-        //faz o calculo de quantas partes vao ter
         //distribui pro pares
+
+        //faz o calculo de quantas partes vao ter
         printMatriz(matrix,N);
-        printf("\n\n===============DIST================\n");
-        printMatriz(dist,N);
     }
     else{
+        MPI_Bcast (&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast (&satisfaz, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        if (satisfaz){
-            
+
+        if (!satisfaz){
+            MPI_Finalize();
+            return 0;
         }
     }
 
+    MPI_Datatype blocktype;
+    MPI_Datatype blocktype2;
+    int BLOCKSIZE = N/q;  // numero de linhas em cada bloco
+
+    float *matrizlocal = (float*) malloc(BLOCKSIZE*BLOCKSIZE*sizeof(float));
+    
+    // ------------ Divisão da matriz dist em blocos de tamanho BLOCKSIZExBLOCKSIZE
+    MPI_Type_vector(BLOCKSIZE, BLOCKSIZE, N, MPI_FLOAT, &blocktype2);
+    MPI_Type_create_resized( blocktype2, 0, sizeof(float), &blocktype);
+    MPI_Type_commit(&blocktype);                  
+
+    int disps[n_procs];
+    int counts[n_procs];
+    for (int i=0; i<q; i++) {
+        for (int j=0; j<q; j++) {
+            get_m_value(disps, q, i, j) = i*N*BLOCKSIZE+j*BLOCKSIZE;
+            get_m_value(counts, q, i, j) = 1;
+        }
+    }    
+    
+    MPI_Scatterv(dist, counts, disps, blocktype, matrizlocal, BLOCKSIZE*BLOCKSIZE, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    
+    /*for (int i=0; i<BLOCKSIZE; i++) {
+        for (int j=0; j<BLOCKSIZE; j++) {
+            printf("%3.0f ", get_m_value(matrizlocal, BLOCKSIZE, i, j));
+        }
+        printf("\n");
+    }
+    */
+
+
     MPI_Finalize();
+    return 0;
 }
