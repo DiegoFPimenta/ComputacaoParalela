@@ -29,8 +29,7 @@ void finalizaProgramaComErro (char *message) {
     exit(0);
 }
 
-int isPerfectSquare(int number)
-{
+int isPerfectSquare(int number) {
     int iVar;
     float fVar;
  
@@ -64,7 +63,7 @@ float* inicializa_dist (float *matrix, int n){
 
 int main(int argc, char *argv[]){
 
-    int  my_rank, n_procs;
+    int  my_rank, n_procs, q;
     int  N = 0;
     MPI_Status status;
 
@@ -76,9 +75,29 @@ int main(int argc, char *argv[]){
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
 
     q = (int) sqrt(n_procs);
-    float *dist;
-    //le a matriz do arquivo
+    // Cria a topologia cartesiana
+    MPI_Comm grid_comm, row_comm, col_comm;
 
+    int dimensoes[2] = { q, q };
+    int circular[2] = { TRUE, TRUE };
+
+    int reordenar = TRUE;    
+    
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dimensoes, circular, reordenar, &grid_comm);
+    
+    int  varying_coords[2] = {0, 1};
+    MPI_Cart_sub(grid_comm, varying_coords, &row_comm);
+    varying_coords[2] = {1, 0};
+    MPI_Cart_sub(grid_comm, varying_coords, &col_comm);
+
+    int coordenadas[2];
+    int my_grid_rank;
+
+    MPI_Comm_rank(grid_comm, &my_grid_rank);
+    MPI_Cart_coords(grid_comm, my_grid_rank, 2, coordenadas);
+    
+    float *dist, *c;
+    //le a matriz do arquivo
     if( my_rank == 0 ){
         if (argc < 2){
             finalizaProgramaComErro("Usage ./fox matrix-file.txt");
@@ -139,14 +158,14 @@ int main(int argc, char *argv[]){
     
     MPI_Scatterv(dist, counts, disps, blocktype, matrizlocal, BLOCKSIZE*BLOCKSIZE, MPI_FLOAT, 0, MPI_COMM_WORLD);
     
-    /*for (int i=0; i<BLOCKSIZE; i++) {
+
+    for (int i=0; i<BLOCKSIZE; i++) {
         for (int j=0; j<BLOCKSIZE; j++) {
             printf("%3.0f ", get_m_value(matrizlocal, BLOCKSIZE, i, j));
         }
         printf("\n");
     }
-    */
-
+    
 
     MPI_Finalize();
     return 0;
