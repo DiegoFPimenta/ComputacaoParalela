@@ -1,23 +1,55 @@
+#ifndef SDS
+    #define SDS
+    #include "sds/sds.h"
+    #include "sds/sds.c"
+#endif
 #include <string.h>
-#include "matrix.h"
-#include "sds/sds.h"
-#include "sds/sds.c"
+#ifndef DEFINES
+    #define DEFINES
+    #define TRUE 1
+    #define FALSE 0
+    #define MIN(a, b) ((a) < (b)) ? (a) : (b)
+    #define get_m_value(vector, size, a, b) vector[a*size + b]
+#endif
 
-#define get_m_value(vector, size, a, b) vector[a*size + b]
 
-
-void printMatriz(float *matrix, int tam){
-
-    printf("Dimensao: %d\n",tam);
+void printMatriz(float *matrix, int tam, int rank){
+    sds string = sdsempty();
+    sds temp = sdsempty();
+    
+    sprintf(temp,"Meu_rank %d\n",rank);
+    string = sdscat(string, temp);
 
     for(int i = 0; i < tam; i++){
         for(int j = 0; j < tam; j++){
-            printf("%5.2f ",get_m_value(matrix,tam,i,j));
+            sprintf(temp,"%5.2f ",get_m_value(matrix,tam,i,j));
+            string = sdscat(string, temp);
         }
-        printf("\n");
+        string = sdscat(string, "\n");
     }
+    string = sdscat(string, "\n");
+    printf("%s", string);
+}
 
-
+void printMatrizFOX(sds title, float *matrix, int tam, int rank, int iteracao){
+    sds string = sdsempty();
+    sds temp = sdsempty();
+    
+    sprintf(temp,"iteracao %d ", iteracao);
+    string = sdscat(string, temp);
+    sprintf(temp,"Meu_rank %d ",rank);
+    string = sdscat(string, temp);
+    string = sdscat(string, title);
+    
+    for(int i = 0; i < tam; i++){
+        for(int j = 0; j < tam; j++){
+            sprintf(temp,"%5.2f ",get_m_value(matrix,tam,i,j));
+            string = sdscat(string, temp);
+        }
+        string = sdscat(string, "\n");
+    }
+    string = sdscat(string, "\n");
+    printf("%s", string);
 }
 
 float *leMatrizDoArquivo(char *arquivo, int *N){
@@ -50,3 +82,4 @@ float *leMatrizDoArquivo(char *arquivo, int *N){
     *N = n;
     return matrix;
 }
+ 
