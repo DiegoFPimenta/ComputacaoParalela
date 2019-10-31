@@ -107,7 +107,7 @@ int main(int argc, char *argv[]){
     int satisfaz = 1;
 
     MPI_Init(&argc, &argv);
-    
+
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
 
@@ -125,6 +125,7 @@ int main(int argc, char *argv[]){
         if (matrix == NULL){
             finalizaProgramaComErro("Could not load Matrix file!");
         }
+        //printMatriz(matrix, N, my_rank);
 
         // Verifica se os parâmetros satisfazem a condição inicial do algoritmo de Fox
         satisfaz = isPerfectSquare(n_procs) && N % q == 0;
@@ -179,21 +180,36 @@ int main(int argc, char *argv[]){
         for (int j = 0; j < block_dimm; j++)
                 get_m_value(localresult, block_dimm, i, j) = INFINITY;
     int g;
-    for ( g = 1; g < N/2; g *=2){
+    
+
+    
+    double t1, t2;
+    char *arquivo_saida = (char*) malloc (64);
+    
+    if (my_rank == 0) system("mkdir saida");
+    FILE *fout;
+    int aux;
+    for (aux = 0; aux < strlen(argv[1]); aux++) 
+        if (argv[1][aux] =='/') break;
+    
+    sprintf(arquivo_saida, "saida/n%d:%s", n_procs, argv[1]+aux+1);
+    fout = fopen(arquivo_saida, "w");
+    if (my_rank == 0) t1 = MPI_Wtime();
+    
+    for ( g = 1; g < N; g *=2){
         fox(grid, localdist, block_dimm, localresult);
         memcpy(localdist, localresult, blocksize*sizeof(float));
-
     }
-
+    
     if (my_rank == 0) {
-        printf("%d\n", g);
-    solucaoSimples(dist, N);
-        printMatriz(dist, N, my_rank);
+        t2 = MPI_Wtime();
+        fprintf(fout, "tempo: %lf\n", t2 -t1);
     }
-
-    float *matrizresult = print_resultado(grid, localresult, block_dimm, N);
-    if (my_rank == 0) {
-        printMatriz(matrizresult, N, my_rank);
+    
+    float *resultado = junta_resultado(grid, localresult, block_dimm, N);
+    if (my_rank == 0){
+        printMatrizArquivo(resultado, N, fout);
+        fclose(fout);
     }
 
     MPI_Finalize();
