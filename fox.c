@@ -51,7 +51,7 @@ float* inicializa_dist (float *matrix, int n){
     return dist;
 }
 
-float* print_resultado(grid_t *grid, float *localresult, int localsize, int globalsize){   
+float* junta_resultado(grid_t *grid, float *localresult, int localsize, int globalsize){   
     float *matrizona = (float *) malloc (globalsize*globalsize*sizeof(float));
     int        source;
     float*     temp;
